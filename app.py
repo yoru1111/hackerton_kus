@@ -1,5 +1,7 @@
 import streamlit as st
 import google.generativeai as genai
+import os
+from pathlib import Path
 
 # 페이지 설정
 st.set_page_config(
@@ -8,9 +10,26 @@ st.set_page_config(
     layout="centered"
 )
 
+# API 키 설정
+try:
+    # Streamlit Cloud에서 실행될 때
+    api_key = st.secrets["GEMINI_API_KEY"]
+except KeyError:
+    # 로컬에서 실행될 때
+    secrets_path = Path(".streamlit/secrets.toml")
+    if secrets_path.exists():
+        with open(secrets_path, "r") as f:
+            exec(f.read())
+        api_key = GEMINI_API_KEY
+    else:
+        st.error("API 키가 설정되지 않았습니다. .streamlit/secrets.toml 파일을 확인해주세요.")
+        st.stop()
+
 # Gemini AI 설정
-genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-model = genai.GenerativeModel("gemini-1.5-pro")
+genai.configure(api_key=api_key)
+
+# 채팅 모델 설정
+model = genai.GenerativeModel('models/gemini-1.5-flash')
 
 # 채팅 기록 초기화
 if "chat" not in st.session_state:
