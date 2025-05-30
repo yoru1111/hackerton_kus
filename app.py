@@ -11,19 +11,28 @@ st.set_page_config(
 )
 
 # API 키 설정
-try:
-    # Streamlit Cloud에서 실행될 때
-    api_key = st.secrets["GEMINI_API_KEY"]
-except KeyError:
-    # 로컬에서 실행될 때
+api_key = None
+
+# 1. Streamlit Cloud에서 실행될 때
+if 'GEMINI_API_KEY' in st.secrets:
+    api_key = st.secrets['GEMINI_API_KEY']
+# 2. 로컬에서 실행될 때
+else:
     secrets_path = Path(".streamlit/secrets.toml")
     if secrets_path.exists():
-        with open(secrets_path, "r") as f:
-            exec(f.read())
-        api_key = GEMINI_API_KEY
-    else:
-        st.error("API 키가 설정되지 않았습니다. .streamlit/secrets.toml 파일을 확인해주세요.")
-        st.stop()
+        try:
+            with open(secrets_path, "r") as f:
+                for line in f:
+                    if line.startswith("GEMINI_API_KEY"):
+                        api_key = line.split("=")[1].strip().strip('"').strip("'")
+                        break
+        except Exception as e:
+            st.error(f"secrets.toml 파일을 읽는 중 오류가 발생했습니다: {str(e)}")
+            st.stop()
+
+if not api_key:
+    st.error("API 키가 설정되지 않았습니다. Streamlit Cloud의 Secrets에서 GEMINI_API_KEY를 설정하거나, 로컬의 .streamlit/secrets.toml 파일을 확인해주세요.")
+    st.stop()
 
 # Gemini AI 설정
 genai.configure(api_key=api_key)
