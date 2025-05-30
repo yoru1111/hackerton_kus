@@ -2,6 +2,7 @@ import streamlit as st
 import google.generativeai as genai
 import os
 from pathlib import Path
+import toml
 
 # 페이지 설정
 st.set_page_config(
@@ -11,34 +12,17 @@ st.set_page_config(
 )
 
 # API 키 설정
-api_key = None
-
-# 1. Streamlit Cloud에서 실행될 때
-if 'GEMINI_API_KEY' in st.secrets:
-    api_key = st.secrets['GEMINI_API_KEY']
-# 2. 로컬에서 실행될 때
-else:
-    secrets_path = Path(".streamlit/secrets.toml")
-    if secrets_path.exists():
-        try:
-            with open(secrets_path, "r") as f:
-                for line in f:
-                    if line.startswith("GEMINI_API_KEY"):
-                        api_key = line.split("=")[1].strip().strip('"').strip("'")
-                        break
-        except Exception as e:
-            st.error(f"secrets.toml 파일을 읽는 중 오류가 발생했습니다: {str(e)}")
-            st.stop()
-
-if not api_key:
+try:
+    api_key = st.secrets["GEMINI_API_KEY"]
+except Exception as e:
     st.error("API 키가 설정되지 않았습니다. Streamlit Cloud의 Secrets에서 GEMINI_API_KEY를 설정하거나, 로컬의 .streamlit/secrets.toml 파일을 확인해주세요.")
     st.stop()
 
 # Gemini AI 설정
 genai.configure(api_key=api_key)
 
-# 채팅 모델 설정
-model = genai.GenerativeModel('models/gemini-1.5-flash')
+# 채팅 모델 설정 (gemini-1.5-flash로 수정됨)
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 # 채팅 기록 초기화
 if "chat" not in st.session_state:
@@ -47,7 +31,7 @@ if "chat" not in st.session_state:
 # 페이지 타이틀 및 소개
 st.title("🤖 Gemini AI Chat")
 st.markdown("""
-Welcome to Gemini AI Chat! This is a simple chatbot interface powered by Google's Gemini AI.
+Welcome to Gemini AI Chat! This is a simple chatbot interface powered by Google's Gemini AI (1.5 Flash).
 Feel free to start a conversation below.
 """)
 
@@ -74,11 +58,11 @@ if prompt := st.chat_input("메시지를 입력하세요..."):
         with st.chat_message("assistant"):
             response = st.session_state.chat.send_message(prompt)
             st.markdown(response.text)
-            
+        
         # 응답 저장
         st.session_state.messages.append({"role": "assistant", "content": response.text})
-        
+    
     except Exception as e:
-        error_message = f"Error: {str(e)}"
+        error_message = f"❌ 오류 발생: {str(e)}"
         st.error(error_message)
         st.session_state.messages.append({"role": "assistant", "content": error_message})
